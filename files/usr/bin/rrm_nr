@@ -17,12 +17,11 @@ function _do_updates() {
 		net_ssid=$(iwinfo ${wifi_iface} info | head -n1 | cut -d\" -f2)
 		[ -z "${net_ssid}" ] && logger -t "rrm_nr" -p daemon.error "${wifi_iface}: does not have ssid according to iwinfo." && continue
 		
-		# Discover other nodes
+		# Discover other nodes on same AP (for band steer)
 		rrm_nr_lists=""
 
 		for other_iface in $(ubus list hostapd.wlan* | awk -F. '{ print $2; }'); do
 			[ ${wifi_iface} = ${other_iface} ] && continue
-
 			[ ${net_ssid} = $(iwinfo ${other_iface} info | head -n1 | cut -d\" -f2) ] && rrm_nr_lists="${rrm_nr_lists}"$'\n'"$(/bin/ubus call hostapd.${other_iface} rrm_nr_get_own | /usr/bin/jsonfilter -e '$.value')"
 		done
 
@@ -35,9 +34,6 @@ function _do_updates() {
 		nr_len=$(echo "${rrm_nr_lists:1}" | wc -l)
 		rrm_nr_lists=$(echo -n "${rrm_nr_lists:1}" | sort -u | tr '\n' ',' )
 		rrm_nr_lists="[${rrm_nr_lists::-1}]"
-
-		#[[ "${rrm_nr_lists}" == "," ]] && logger -t "rrm_nr" -p daemon.error "${wifi_iface}: no neighbors detected, nothing to do" && continue TODO is logging necessary?
-		#[[ "${rrm_nr_lists}" == "," ]] && continue
 
 		#ubus call hostapd.${wifi_iface} bss_mgmt_enable '{"neighbor_report": true}' neighbor_report shoud be enabled in uci TODO skip interface if not set
 		prev_rrm_list="[$(ubus call hostapd.${wifi_iface} rrm_nr_list | jsonfilter -e '@.list[@]' | sort -u | sed ':a;N;$!ba;s/\n/,/g')]"

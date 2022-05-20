@@ -8,14 +8,8 @@ NAME=rrm_nr
 USE_PROCD=1
 
 start_service() {
-	#[ ! -f /etc/config/wireless ] && logger -t "${NAME}" -pdaemon.error "/etc/config/wireless does not exist" && exit 1
-	#[ $(grep -q 'wifi-iface' /etc/config/wireless) ] && logger -t "${NAME}" -pdaemon.error "/etc/config/wireless does not have any wifi-iface stanzas" && exit 1
-
+	local rrm_own
 	#todo skip if nr is disabled for interface, skip disabled interface etc.
-	#while [ "$(ubus list hostapd.wlan* | wc -l)" != "$(grep 'wifi-iface' /etc/config/wireless | wc -l)" ]; do
-	#	logger -t "${NAME}" -pdaemon.info "Waiting for all interfaces to initialize"
-	#	sleep 30
-	#done
 
 	procd_open_instance
 	procd_set_param command /bin/sh "/usr/bin/rrm_nr"
