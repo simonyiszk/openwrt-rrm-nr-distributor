@@ -53,8 +53,8 @@ function _do_updates() {
 # changed loop with sequence of service reloading
 # while true; do
 _do_updates
-sleep 60
-/etc/init.d/rrm_nr reload
+sleep 55
+/etc/init.d/rrm_nr restart
 # done
 
 exit 0

@@ -39,7 +39,7 @@ start_service() {
 	json_close_object
 	procd_close_data
 	procd_open_trigger
-	procd_add_reload_trigger "wireless"
+	procd_add_config_trigger "config.change" "wireless" /etc/init.d/rrn_nr restart
 	procd_close_trigger
 	procd_close_instance
 }
