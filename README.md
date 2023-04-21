@@ -19,5 +19,4 @@
 
 ## Known issues
 
-- SSIDs with '|' character are not supported at the moment
 - With large number of APs (>20) the full umdns update takes a few interations/minutes
