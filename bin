@@ -4,26 +4,91 @@
 
 NAME=rrm_nr
 
+# Make sure we clean up our tmp dir on probable exit signals
+cleanup() {
+	rc=$?
+	rm -rf "$hashmap"
+	logger -t "rrm_nr" -p daemon.info "Removed hash map directory: $hashmap"
+	exit $rc
+}
+trap cleanup EXIT INT HUP TERM QUIT
+
+# Hash Map concept adopted from here:
+# https://www.baeldung.com/linux/posix-shell-array#associative-arrays--hash-maps
+
+# Function to create a new tmp dir for our hashmap
+hm_create() {
+	mktemp -d
+}
+
+# Function to create the hash value (checksum)
+hm_hash() {
+	echo "$1" | md5sum -
+}
+
+# Argument 1: Hash Table
+# Argument 2: Key
+# Argument 3: Value
+hm_put() {
+	echo "$3" > "$1/$(hm_hash "$2")"
+}
+
+# Argument 1: Hash Table
+# Argument 2: Key
+hm_delete() {
+	rm -f "$1/$(hm_hash "$2")"
+}
+
+# Argument 1: Hash Table
+# Argument 2: Key
+hm_get() {
+	cat "$1/$(hm_hash "$2")"
+}
+
+first_run_complete=0
+hashmap="$(hm_create)"
+
 # We wrap everything into this function to allow GC by ash, esp. for low-mem devices
-_do_updates() {
+do_updates() {
+	# If the first run, set the hostapd device-->SSID mapping so we can avoid this expensive
+	# process on future iterations
+	if [ $first_run_complete -eq 0 ]; then
+		for wifi_iface in $(ubus list hostapd.* | awk -F. '{ print $2; }'); do
+			net_ssid=$(iwinfo ${wifi_iface} info | head -n1 | cut -d\" -f2)
+			[ -z "${net_ssid}" ] && logger -t "rrm_nr" -p daemon.error "${wifi_iface}: does not have ssid according to iwinfo." && continue
+
+			# Store the mapping of hostapd-->SSID for faster lookup
+			hm_put "$hashmap" "$wifi_iface" "$net_ssid"
+		done
+
+		first_run_complete=1
+		logger -t "rrm_nr" -p daemon.info "Created initial hash map directory: $hashmap"
+	fi
+
 	local rrm_nr_lists
 
 	OIFS=$IFS
 	IFS=$'\n'
+
 	# Discover neighbors and self
 	ubus call umdns update
 	sleep 5
-	for wifi_iface in $(ubus list hostapd.* | awk -F. '{ print $2; }'); do
-		net_ssid=$(iwinfo ${wifi_iface} info | head -n1 | cut -d\" -f2)
-		[ -z "${net_ssid}" ] && logger -t "rrm_nr" -p daemon.error "${wifi_iface}: does not have ssid according to iwinfo." && continue
+
+	# Do this lookup as few times as possible for each update iteration
+	hostapd_members=$(ubus list hostapd.* | awk -F. '{ print $2; }')
+
+	for wifi_iface in $hostapd_members; do
+		net_ssid=$(hm_get "$hashmap" "$wifi_iface")
 
 		# Discover other nodes
 		rrm_nr_lists=""
 
-		for other_iface in $(ubus list hostapd.* | awk -F. '{ print $2; }'); do
-			[ ${wifi_iface} = ${other_iface} ] && continue
+		for other_iface in $hostapd_members; do
+			[ "${wifi_iface}" = "${other_iface}" ] && continue
 
-			[ ${net_ssid} = $(iwinfo ${other_iface} info | head -n1 | cut -d\" -f2) ] && rrm_nr_lists="${rrm_nr_lists}"$'\n'"$(/bin/ubus call hostapd.${other_iface} rrm_nr_get_own | /usr/bin/jsonfilter -e '$.value')"
+			if [ "${net_ssid}" = "$(hm_get "$hashmap" "$other_iface")" ]; then
+				rrm_nr_lists="${rrm_nr_lists}"$'\n'"$(/bin/ubus call hostapd.${other_iface} rrm_nr_get_own | /usr/bin/jsonfilter -e '$.value')"
+			fi
 		done
 
 		# Sort at the end stabilizes the result, so we can compare it across runs
@@ -52,7 +117,7 @@ _do_updates() {
 }
 
 while true; do
-	_do_updates
+	do_updates
 
 	sleep 60
 done
