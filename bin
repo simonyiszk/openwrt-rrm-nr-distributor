@@ -116,10 +116,27 @@ do_updates() {
 	IFS=$OIFS
 }
 
-while true; do
-	do_updates
+# This is an alternate approach to the original "sleep 60" in the while loop below.
+# The issue with "sleep 60" is that the rrm_nr service will not exit cleanly because
+# by default it only waits up to 5 seconds for this script to exit. But because the while
+# loop is sleeping, it fails to clean up the tmp directory (for hash map) because procd
+# sends a SIGKILL which cannot be trapped.
 
-	sleep 60
+# Set the delay_counter to 20 initially so we immediately execute do_updates upon entering
+# the while loop. Then subsequently set the counter back to 0 and begin incrementing every
+# 3 seconds until we reach 20 iterations again (=60 seconds between do_updates calls).
+# In this way, procd can actually signal a clean exit since this will become responsive again
+# every 3 seconds now.
+delay_counter=20
+while true; do
+	if [ $delay_counter -eq 20 ]; then
+		do_updates
+		delay_counter=0
+	else
+		: $((delay_counter+=1))
+	fi
+
+	sleep 3
 done
 
 exit 0
