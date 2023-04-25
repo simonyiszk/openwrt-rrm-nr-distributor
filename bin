@@ -92,7 +92,7 @@ do_updates() {
 		done
 
 		# Sort at the end stabilizes the result, so we can compare it across runs
-		for discovered_node in $(ubus call umdns browse '{ "service": "_rrm_nr._udp", "array": true }' | jsonfilter -e '@["_rrm_nr._udp"][*].txt[*]' | grep "\"${net_ssid}\"" | sed "s/${net_ssid}=//g"); do
+		for discovered_node in $(ubus call umdns browse '{ "service": "_rrm_nr._udp", "array": true }' | jsonfilter -e '@["_rrm_nr._udp"][*].txt[*]' | grep "\"${net_ssid}\"" | sed -E "s/SSID\d+=//g"); do
 			rrm_nr_lists="${rrm_nr_lists}"$'\n'"${discovered_node}"
 		done
 
@@ -119,8 +119,8 @@ do_updates() {
 # This is an alternate approach to the original "sleep 60" in the while loop below.
 # The issue with "sleep 60" is that the rrm_nr service will not exit cleanly because
 # by default it only waits up to 5 seconds for this script to exit. But because the while
-# loop is sleeping, it fails to clean up the tmp directory (for hash map) because procd
-# sends a SIGKILL which cannot be trapped.
+# loop is sleeping, it fails to exit cleanly because procd sends a SIGKILL which cannot be
+# trapped.
 
 # Set the delay_counter to 20 initially so we immediately execute do_updates upon entering
 # the while loop. Then subsequently set the counter back to 0 and begin incrementing every
@@ -133,7 +133,7 @@ while true; do
 		do_updates
 		delay_counter=0
 	else
-		: $((delay_counter+=1))
+		delay_counter=$((delay_counter + 1))
 	fi
 
 	sleep 3
