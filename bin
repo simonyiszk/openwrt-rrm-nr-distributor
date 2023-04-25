@@ -27,7 +27,7 @@ _do_updates() {
 		done
 
 		# Sort at the end stabilizes the result, so we can compare it across runs
-		for discovered_node in $(ubus call umdns browse '{ "service": "_rrm_nr._udp", "array": true }' | jsonfilter -e '@["_rrm_nr._udp"][*].txt[*]' | grep "\"${net_ssid}\"" | sed "s/${net_ssid}=//g"); do
+		for discovered_node in $(ubus call umdns browse '{ "service": "_rrm_nr._udp", "array": true }' | jsonfilter -e '@["_rrm_nr._udp"][*].txt[*]' | grep "\"${net_ssid}\"" | sed -E "s/SSID\d+=//g"); do
 			rrm_nr_lists="${rrm_nr_lists}"$'\n'"${discovered_node}"
 		done
 
