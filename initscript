@@ -21,12 +21,14 @@ start_service() {
 	OIFS=$IFS
 	IFS=$'\x0a'
 
+	local ssid_count=1
 	for value in $(ubus list hostapd.*); do
 		curr_value=$(/bin/ubus call "${value}" rrm_nr_get_own | /usr/bin/jsonfilter -e '$.value')
 		ssid=$(echo "$curr_value" | awk -F, '{ print $2; }' | sed 's/^ *"//;s/" *$//')
 		# Using + as the delimiter instead of |. Because + is an invalid character to use in SSID naming,
 		# this removes the known issue where | could not be used in the SSID name.
-		rrm_own="${rrm_own}+${ssid}=${curr_value}"
+		rrm_own="${rrm_own}+SSID${ssid_count}=${curr_value}"
+		ssid_count=$((ssid_count + 1))
 	done
 
 	rrm_own="${rrm_own#*+}"
