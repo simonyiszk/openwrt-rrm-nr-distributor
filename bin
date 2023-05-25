@@ -23,7 +23,7 @@ hm_create() {
 
 # Function to create the hash value (checksum)
 hm_hash() {
-	echo "$1" | md5sum -
+	echo "$1" | md5sum | head -c 32
 }
 
 # Argument 1: Hash Table
