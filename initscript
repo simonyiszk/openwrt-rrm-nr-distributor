@@ -45,7 +45,7 @@ start_service() {
 }
 
 boot() {
-	sleep 30
+	sleep 120
 	start
 }
 
