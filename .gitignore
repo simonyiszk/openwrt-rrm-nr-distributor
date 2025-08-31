@@ -1,0 +1,11 @@
+# Ignore macOS metadata
+**/.DS_Store
+
+# Ignore Windows metadata
+**/Thumbs.db
+**/ehthumbs.db
+**/Desktop.ini
+
+# Extra
+package/rrm-nr-distributor/*
+local_refs/*

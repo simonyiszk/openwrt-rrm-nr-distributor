@@ -1,0 +1,17 @@
+#!/bin/sh
+# Minimal jsonfilter supporting -e '$.value' and '@.ssid' and '@.list[@]'
+read_input() { cat; }
+INPUT=$(read_input)
+expr=""
+while [ $# -gt 0 ]; do
+  case $1 in
+    -e) shift; expr=$1 ;;
+  esac; shift
+done
+case $expr in
+  '$.value') echo "$INPUT" | sed -n 's/.*"value"[ ]*:[ ]*"\(.*\)".*/\1/p' ;;
+  '@.ssid') echo "$INPUT" | sed -n 's/.*"ssid"[ ]*:[ ]*"\(.*\)".*/\1/p' ;;
+  '@.list[@]') echo "$INPUT" | sed -n 's/.*"list"[ ]*:[ ]*\[\(.*\)\].*/\1/p' | tr ',' '\n' | sed 's/^[ ]*\"//;s/\"$//' ;;
+  '@["_rrm_nr._udp"][*].txt[*]') echo "$INPUT" | sed -n 's/.*"txt"[ ]*:[ ]*\[\(.*\)\].*/\1/p' | tr ',' '\n' | sed 's/[ \"}]//g' ;;
+  *) ;; # ignore
+esac

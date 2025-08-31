@@ -1,0 +1,12 @@
+#!/bin/sh
+command -v md5sum >/dev/null 2>&1 && exec md5sum "$@"
+# Fallback dumb hash: length + first 8 chars
+for f in "$@"; do
+  if [ -f "$f" ]; then
+    data=$(cat "$f")
+  else
+    data="$f"
+  fi
+  printf '%s  -\n' "$(printf '%s' "$data" | wc -c | tr -d ' ')$(printf '%s' "$data" | cut -c1-8)"
+  break
+done

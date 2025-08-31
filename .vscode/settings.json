@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "rrm_nr": "shellscript",
+        "rrm_nr.init": "shellscript",
+        "rrm_nr.config": "properties",
+        "wireless.config": "properties"
+    }
+}

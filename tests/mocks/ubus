@@ -1,0 +1,58 @@
+#!/bin/sh
+# Mock ubus supporting minimal subset
+CMD=$1
+shift
+case $CMD in
+  list)
+    # output hostapd.* objects or ignore args
+    cat "$SCENARIO/ubus.list" 2>/dev/null
+    ;;
+  call)
+    OBJ=$1; METHOD=$2; shift 2
+    case $METHOD in
+      rrm_nr_get_own)
+        IFACE=${OBJ#hostapd.}
+        VAL=$(grep "^$IFACE=" "$SCENARIO/rrm.values" 2>/dev/null | cut -d= -f2-)
+        [ -z "$VAL" ] && VAL="NR-$IFACE"
+        printf '{"value":"%s"}' "$VAL"
+        ;;
+      bss)
+        IFACE=${OBJ#hostapd.}
+        SSID=$(grep "^$IFACE " "$SCENARIO/iwinfo.map" 2>/dev/null | cut -d' ' -f2-)
+        [ -z "$SSID" ] && SSID=TestSSID
+        printf '{"ssid":"%s"}' "$SSID"
+        ;;
+      browse)
+        if [ "$OBJ" = "umdns" ]; then
+          cat "$SCENARIO/umdns.browse" 2>/dev/null
+        fi
+        ;;
+      rrm_nr_list)
+        IFACE=${OBJ#hostapd.}
+        if [ -n "$STATE_DIR" ] && [ -f "$STATE_DIR/$IFACE.current" ]; then
+          cur=$(cat "$STATE_DIR/$IFACE.current" 2>/dev/null)
+          printf '{"list":%s}' "$cur"
+        else
+          echo '{"list":[]}'
+        fi
+        ;;
+      rrm_nr_set)
+        IFACE=${OBJ#hostapd.}
+        payload="$*"
+        # Record set operation for assertions
+        if [ -n "$STATE_DIR" ]; then
+          [ -d "$STATE_DIR" ] || mkdir -p "$STATE_DIR" 2>/dev/null
+          echo "$IFACE $payload" >> "$STATE_DIR/rrm_nr_set.log" 2>/dev/null
+          echo "MOCK_UBUS_SET $IFACE $payload" >> "${LOG_FILE:-/tmp/rrm_nr_test.log}" 2>/dev/null
+          # Persist new list for subsequent rrm_nr_list calls
+          echo "$payload" | sed -n 's/.*"list"[ ]*:[ ]*\(\[.*\]\).*/\1/p' > "$STATE_DIR/$IFACE.current" 2>/dev/null
+        fi
+        echo "(mock ubus) rrm_nr_set $IFACE" >&2
+        echo '{}'
+        ;;
+      update)
+  ;; # ignore explicit 'umdns update'
+    esac
+    ;;
+  *) ;;
+esac

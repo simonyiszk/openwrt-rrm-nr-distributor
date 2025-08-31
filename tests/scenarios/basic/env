@@ -1,0 +1,2 @@
+# Scenario: basic
+# Two hostapd interfaces on same SSID so their NR entries aggregate

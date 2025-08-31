@@ -1,0 +1,5 @@
+#!/bin/sh
+# Mock logger -> append to test log
+ts=$(date +%s 2>/dev/null)
+[ -z "$ts" ] && ts=0
+printf '%s %s\n' "$ts" "$*" >> "${LOG_FILE:-/tmp/rrm_nr_test.log}"

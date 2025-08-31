@@ -1,0 +1,41 @@
+#!/bin/sh
+# Mock uci for test harness
+CONF_FILE="${STATE_DIR}/uci.conf"
+cmd=$1; shift || true
+case $cmd in
+  get)
+    key=$1
+    [ -f "$CONF_FILE" ] || exit 1
+    val=$(grep -E "^${key}=" "$CONF_FILE" 2>/dev/null | head -n1 | sed 's/^[^=]*=//')
+    [ -n "$val" ] || exit 1
+    printf '%s\n' "$val"
+    ;;
+  show)
+    scope=$1
+    [ -f "$CONF_FILE" ] || exit 0
+    # lines starting with scope.
+    grep -E "^${scope}\." "$CONF_FILE" 2>/dev/null | while IFS= read -r line; do
+      k=${line%%=*}
+      v=${line#*=}
+      printf "%s='%s'\n" "$k" "$v"
+    done
+    ;;
+  -q)
+    # allow patterns like: uci -q get key ...
+    sub=$1; shift
+    case $sub in
+      get)
+        key=$1
+        "$0" get "$key"
+        ;;
+      show)
+        scope=$1
+        "$0" show "$scope"
+        ;;
+    esac
+    ;;
+  *)
+    # unsupported operations ignored (set, commit, etc.)
+    ;;
+esac
+exit 0

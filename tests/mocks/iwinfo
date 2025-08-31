@@ -1,0 +1,10 @@
+#!/bin/sh
+# Mock iwinfo returning ESSID from scenario mapping file
+IFACE=$1
+[ "$2" = info ] || exit 1
+MAP_FILE="${SCENARIO}/iwinfo.map"
+SSID=$(grep "^$IFACE " "$MAP_FILE" 2>/dev/null | cut -d' ' -f2-)
+[ -z "$SSID" ] && SSID="TestSSID"
+cat <<EOF
+ESSID: "$SSID"
+EOF

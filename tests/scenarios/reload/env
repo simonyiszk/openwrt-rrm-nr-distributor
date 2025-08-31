@@ -1,0 +1,2 @@
+# Scenario: reload timing shrink
+# Start with longer interval then shrink via SIGHUP-triggered reload
