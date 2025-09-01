@@ -1,6 +1,12 @@
 802.11k Neighbor Report distributor daemon
 ==========================================
 
+## ⚠️ Deprecation Notice — 2025-09-01
+
+This project is deprecated and will no longer be maintained. However, an evolution of this project is in motion and is available now under a new name: [nrsyncd](https://github.com/Fail-Safe/nrsyncd)
+
+If you are a user of openwrt-rrm-nr-distributor, please take note of [the migration path to the new project](https://github.com/Fail-Safe/nrsyncd/blob/main/README.md#legacy-note-), if you choose to adopt it. Thank you for your support!
+
 ## Features
 
 - Multi-network support (different SSID for different networks)
